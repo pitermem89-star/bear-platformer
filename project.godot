@@ -4,6 +4,9 @@ config_version=5
 config/name="Bear Platformer"
 run/main_scene="res://main.tscn"
 
+[display]
+window/handheld/orientation=0
+
 [rendering]
 renderer/rendering_method="mobile"
 textures/vram_compression/import_etc2_astc=true

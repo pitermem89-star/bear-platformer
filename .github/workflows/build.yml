@@ -7,6 +7,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      GODOT_ANDROID_KEYSTORE_DEBUG_PATH: ${{ github.workspace }}/debug.keystore
+      GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
+      GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
     steps:
       - uses: actions/checkout@v4
 
@@ -17,17 +21,34 @@ jobs:
           mv Godot_v4.3-stable_linux.x86_64 godot
           chmod +x godot
 
-      - name: Download Godot export templates
+      - name: Download export templates
         run: |
           wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz
           mkdir -p ~/.local/share/godot/export_templates/4.3.stable
           unzip -q Godot_v4.3-stable_export_templates.tpz -d tmp
           mv tmp/templates/* ~/.local/share/godot/export_templates/4.3.stable/
 
-      - name: Install Android build tools
+      - name: Create debug keystore
         run: |
-          sudo apt-get update
-          sudo apt-get install -y openjdk-17-jdk-headless unzip wget
+          keytool -genkeypair -v -keystore debug.keystore \
+            -storepass android -keypass android \
+            -alias androiddebugkey -keyalg RSA -keysize 2048 \
+            -validity 9999 -deststoretype pkcs12 \
+            -dname "CN=Android Debug,O=Android,C=US"
+
+      - name: Tell Godot where Android SDK and Java are
+        run: |
+          mkdir -p ~/.config/godot
+          cat > ~/.config/godot/editor_settings-4.3.tres <<EOF
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/android_sdk_path = "$ANDROID_HOME"
+          export/android/java_sdk_path = "$JAVA_HOME_17_X64"
+          EOF
+
+      - name: Import project
+        run: ./godot --headless --import || true
 
       - name: Export APK
         run: |
